@@ -6,6 +6,7 @@
     <% if $Introduction %>
         <div class="element__introduction">$Introduction</div>
     <% end_if %>
-    $Form
+    $Controller.CalculatorForm
+    $Controller.Results
 </div>
 

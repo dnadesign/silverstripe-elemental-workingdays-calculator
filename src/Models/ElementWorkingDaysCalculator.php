@@ -3,6 +3,7 @@
 namespace DNADesign\ElementWorkingDaysCalculator\Models;
 
 use DNADesign\Elemental\Models\BaseElement;
+use DNADesign\ElementWorkingDaysCalculator\Controllers\ElementWorkingDaysCalculatorController;
 use DNADesign\ElementWorkingDaysCalculator\Services\PublicHolidayService;
 use Exception;
 use Psr\Log\LoggerInterface;
@@ -29,11 +30,14 @@ class ElementWorkingDaysCalculator extends BaseElement
 
     private static $inline_editable = false;
 
+    private static $controller_class = ElementWorkingDaysCalculatorController::class;
+
     private static $db = [
         'Country' => 'Varchar(2)',
         'MinYear' => 'Varchar(4)', // use varchar instead of int for cms validation
         'MaxYear' => 'Varchar(4)', // use varchar instead of int for cms validation
-        'PublicHolidayJson' => 'Text'
+        'PublicHolidayJson' => 'Text',
+        'Introduction' => 'HTMLText'
     ];
 
     private static $has_many = [
@@ -83,9 +87,15 @@ class ElementWorkingDaysCalculator extends BaseElement
     {
         $fields = parent::getCMSFields();
 
+        //  Introduction
+        $intro = $fields->dataFieldByName('Introduction');
+        if ($intro) {
+            $intro->setRows(3);
+        }
+
         // Country
         $country = DropdownField::create('Country', 'Country', $this->getCountryOptions());
-        $fields->addFieldToTab('Root.Main', $country);
+        $fields->addFieldToTab('Root.Main', $country, 'Introduction');
 
         // Years
         $start = $fields->dataFieldByName('MinYear');
