@@ -14,6 +14,7 @@ class WorkingDaysCalculatorInterval extends DataObject
 
     private static $db = [
         'DayCount' => 'Int',
+        'ResultIntroduction' => 'Text',
         'Sort' => 'Int'
     ];
 
@@ -25,6 +26,8 @@ class WorkingDaysCalculatorInterval extends DataObject
         'ID' => 'ID',
         'getIntervalNice' => 'Interval'
     ];
+
+    private static $default_sort = 'Sort ASC';
 
     public function getIntervalNice()
     {
