@@ -9,7 +9,7 @@
                 <p class="wdc__warning">NOTE: this date takes into consideration the following non-working days:</p>
                 <ul class="wdc__holidayslist">
                     <% loop $Holidays %>
-                        <li>$Title ($Date.Format('dd/MM/yyyy'))</li>
+                        <li>$Title ($Date)</li>
                     <% end_loop %>
                 </ul>
             <% end_if %>

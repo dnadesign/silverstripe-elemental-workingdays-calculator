@@ -220,6 +220,7 @@ class ElementWorkingDaysCalculator extends BaseElement
 
             $end = clone $date;
             $end->modify('+ '.$interval.' days');
+            $end->setTime(0, 0, 1);
             // BuIld a period of time for this interval
             $period = new DatePeriod(
                 $date,
@@ -258,6 +259,8 @@ class ElementWorkingDaysCalculator extends BaseElement
                 'Holidays' => $this->formatHolidaysForTemplate($holidaysInPeriod)
             ];
         }
+
+        
 
         return $results;
     }
@@ -354,12 +357,21 @@ class ElementWorkingDaysCalculator extends BaseElement
                 foreach ($ranges as $range) {
                     // Get all the dates in the range for the one year
                     $rangeDates = $range->getDates($minYear, $minYear);
-                    if ($rangeDates && !empty($rangeDates)) {
+                    if ($rangeDates && !empty($rangeDates) && count(array_intersect_key($holidays, $rangeDates))) {
+                        // Build the range dates string
                         $rangeStart = date($dateFormat, strtotime(array_key_first($rangeDates)));
                         $rangeEnd = date($dateFormat, strtotime(array_key_last($rangeDates)));
-                        $dateString = sprintf('%s - %s', $rangeStart, $rangeEnd);
-                        var_dump($dateString);
-                        die();
+                        $dateString = sprintf('%s range-delimiter %s', $rangeStart, $rangeEnd);
+                        // If range start on the weekend, it might not be in the holiday array
+                        // so key only the dates that are in the holidays array
+                        $rangeDates = array_intersect_key($holidays, $rangeDates);
+                        // Set the range in array and remove all other dates
+                        $holidays[$dateString] = $holidays[array_key_first($rangeDates)];
+                        foreach ($rangeDates as $date => $title) {
+                            if (isset($holidays[$date])) {
+                                unset($holidays[$date]);
+                            }
+                        }
                     }
                 }
             }
@@ -367,9 +379,16 @@ class ElementWorkingDaysCalculator extends BaseElement
 
         $formatted = [];
         foreach ($holidays as $date => $title) {
+            // Range
+            if (strpos($date, 'range-delimiter') !== false) {
+                $date = str_replace('range-delimiter', '-', $date);
+            } else {
+                $date = date($this->config()->get('output_date_format'), strtotime($date));
+            }
+    
             $holiday = [
                 'Title' => $title,
-                'Date' => DBField::create_field(DBDate::class, $date)
+                'Date' => $date
             ];
 
             array_push($formatted, $holiday);
