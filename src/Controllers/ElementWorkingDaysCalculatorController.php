@@ -4,6 +4,7 @@ namespace DNADesign\ElementWorkingDaysCalculator\Controllers;
 
 use DNADesign\Elemental\Controllers\ElementController;
 use SilverStripe\Control\Controller;
+use SilverStripe\Control\Director;
 use SilverStripe\Forms\DateField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
@@ -65,10 +66,11 @@ class ElementWorkingDaysCalculatorController extends ElementController
             $current->Link(),
             'element',
             $this->ID,
-            'calculate'
+            'calculate',
+            '?'.$this->getDateFieldName().'='
         );
 
-        return $url;
+        return Director::absoluteURL($url);
     }
 
     /**
@@ -101,14 +103,17 @@ class ElementWorkingDaysCalculatorController extends ElementController
         return new ArrayList($results);
     }
 
-    public function calculate($date = null)
+    public function calculate()
     {
-        var_dump($request);
-        die();
-        // $form->customise([
-        //     'Results' => 'blabla'
-        // ]);
+        $date = $this->getRequest()->getVar($this->getDateFieldName());
+        $results = $this->getResults($date);
 
-        return Controller::curr()->redirectBack();
+        $html = Controller::curr()->customise(['Results' => $results])->renderWith('Includes\WorkingDaysCalculatorResults');
+
+        $data = [
+            'HTML' => $html->RAW()
+        ];
+
+        return json_encode($data);
     }
 }
