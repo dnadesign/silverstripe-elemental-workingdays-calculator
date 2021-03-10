@@ -45,6 +45,7 @@ class ElementWorkingDaysCalculatorController extends ElementController
         $form->setFormMethod('GET');
         $form->loadDataFrom(Controller::curr()->getRequest()->getVars());
         $form->setAttribute('data-wdc-ajax-url', $this->getActionURL());
+        $form->addExtraClass('wdc-form');
         $form->setFormAction(Controller::curr()->Link());
         $form->disableSecurityToken();
 
