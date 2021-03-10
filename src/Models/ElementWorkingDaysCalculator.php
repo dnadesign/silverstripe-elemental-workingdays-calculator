@@ -363,4 +363,22 @@ class ElementWorkingDaysCalculator extends BaseElement
     {
         return $this->FormActionLabel ?: 'Go';
     }
+
+    public function getMinDate()
+    {
+        if ($this->MinYear) {
+            return date('Y-m-d', strtotime('01-01-'.$this->MinYear));
+        }
+
+        return null;
+    }
+
+    public function getMaxDate()
+    {
+        if ($this->MaxYear) {
+            return date('Y-m-d', strtotime('31-12-'.$this->MaxYear));
+        }
+
+        return null;
+    }
 }

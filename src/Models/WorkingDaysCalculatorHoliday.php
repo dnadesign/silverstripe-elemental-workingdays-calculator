@@ -36,6 +36,28 @@ class WorkingDaysCalculatorHoliday extends DataObject
         'Recurring.Nice' => 'Repeat every year'
     ];
 
+    public function getCMSFields()
+    {
+        $fields = parent::getCMSFields();
+
+        $fields->removeByName('CalculatorID');
+
+        // To date is not required if not a range
+        $to = $fields->dataFieldByName('To');
+        $to->displayIf('Type')->isEqualTo('Range')->end();
+
+        return $fields;
+    }
+
+    /**
+     * Builds an array of all the date to be considered
+     * Taking into account whether  the date is recurring
+     * and is a range
+     *
+     * @param string $startYear
+     * @param string $endYear
+     * @return array
+     */
     public function getDates($startYear, $endYear)
     {
         $dates = [];
@@ -65,8 +87,22 @@ class WorkingDaysCalculatorHoliday extends DataObject
                     }
                 }
             }
+        } else {
+            if ($this->Type === 'Date') {
+                $dates[$this->From] = $this->Title;
+            } elseif ($this->Type === 'Range' && $this->To) {
+                $period = new DatePeriod(
+                    new DateTime($this->From),
+                    new DateInterval('P1D'),
+                    new DateTime($this->To)
+                );
+                foreach ($period as $dateInPeriod) {
+                    $dates[$dateInPeriod->format('Y-m-d')] = $this->Title;
+                }
+            }
         }
 
+        // Order by date
         ksort($dates);
 
         return $dates;

@@ -35,8 +35,11 @@ class ElementWorkingDaysCalculatorController extends ElementController
         $element = $this->getElement();
 
         $fields = FieldList::create([
-            $date = DateField::create($this->getDateFieldName(), $element->getLabelForField())
+            $date = DateField::create($this->getDateFieldName(), $element->getLabelForField(), date('y-m-d'))
         ]);
+
+        $date->setMinDate($element->getMinDate());
+        $date->setMaxDate($element->getMaxDate());
 
         $actions = FieldList::create([
             FormAction::create('calculate', $element->getLabelForAction())
@@ -46,7 +49,6 @@ class ElementWorkingDaysCalculatorController extends ElementController
         $form->setFormMethod('GET');
         $form->loadDataFrom(Controller::curr()->getRequest()->getVars());
         $form->setAttribute('data-wdc-ajax-url', $this->getActionURL());
-        $form->addExtraClass('wdc-form');
         $form->setFormAction(Controller::curr()->Link());
         $form->disableSecurityToken();
 
@@ -103,6 +105,13 @@ class ElementWorkingDaysCalculatorController extends ElementController
         return new ArrayList($results);
     }
 
+    /**
+     * Action performing the calculation and return a json
+     * containing the results HTML
+     * Used by ajax
+     *
+     * @return json
+     */
     public function calculate()
     {
         $date = $this->getRequest()->getVar($this->getDateFieldName());
