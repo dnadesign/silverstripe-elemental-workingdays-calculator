@@ -39,6 +39,8 @@ class ElementWorkingDaysCalculator extends BaseElement
 
     private static $controller_class = ElementWorkingDaysCalculatorController::class;
 
+    private static $output_date_format = 'd/m/Y';
+
     private static $db = [
         'Country' => 'Varchar(2)',
         'MinYear' => 'Varchar(4)', // use varchar instead of int for cms validation
@@ -238,7 +240,8 @@ class ElementWorkingDaysCalculator extends BaseElement
             }
 
             $holidaysInPeriod = array_filter($holidays, function ($holidayDate) use ($periodDates) {
-                return in_array($holidayDate, $periodDates);
+                $day = date('D', strtotime($holidayDate));
+                return in_array($holidayDate, $periodDates) && $day !== 'Sat' && $day !== 'Sun';
             }, ARRAY_FILTER_USE_KEY);
 
             // Add the number of holidays to the end date
@@ -341,6 +344,27 @@ class ElementWorkingDaysCalculator extends BaseElement
      */
     private function formatHolidaysForTemplate($holidays)
     {
+        $dateFormat = $this->config()->get('output_date_format');
+
+        if (!empty($holidays)) {
+            $minYear = date('Y', strtotime(array_key_first($holidays)));
+            // Format ranges as one date
+            $ranges = $this->ExtraHolidays()->filter(['Type' => 'Range']);
+            if ($ranges && $ranges->exists()) {
+                foreach ($ranges as $range) {
+                    // Get all the dates in the range for the one year
+                    $rangeDates = $range->getDates($minYear, $minYear);
+                    if ($rangeDates && !empty($rangeDates)) {
+                        $rangeStart = date($dateFormat, strtotime(array_key_first($rangeDates)));
+                        $rangeEnd = date($dateFormat, strtotime(array_key_last($rangeDates)));
+                        $dateString = sprintf('%s - %s', $rangeStart, $rangeEnd);
+                        var_dump($dateString);
+                        die();
+                    }
+                }
+            }
+        }
+
         $formatted = [];
         foreach ($holidays as $date => $title) {
             $holiday = [

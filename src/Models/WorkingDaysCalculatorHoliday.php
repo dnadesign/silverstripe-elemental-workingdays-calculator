@@ -75,15 +75,25 @@ class WorkingDaysCalculatorHoliday extends DataObject
                     $dates[$date] = $this->Title;
                 }
             } elseif ($this->Type === 'Range' && $this->To) {
-                $period = new DatePeriod(
-                    new DateTime($this->From),
-                    new DateInterval('P1D'),
-                    new DateTime($this->To)
-                );
-                foreach ($period as $dateInPeriod) {
-                    foreach ($years as $year) {
-                        $date = sprintf('%s-%s-%s', $year, $dateInPeriod->format('m'), $dateInPeriod->format('d'));
-                        $dates[$date] = $this->Title;
+                $from = new DateTime($this->From);
+                $to = new DateTime($this->To);
+                $to->setTime(0, 0, 1); // need to set the time to include last date in period
+
+                $holidayOverlapYears = (int) $from->format('Y') === (int) $to->format('Y') - 1;
+
+                foreach ($years as $year) {
+                    $from->setDate($year, $from->format('m'), $from->format('d'));
+                    $toYear = ($holidayOverlapYears) ? (int)$year + 1 : $year;
+                    $to->setDate($toYear, $to->format('m'), $to->format('d'));
+
+                    $period = new DatePeriod(
+                        $from,
+                        new DateInterval('P1D'),
+                        $to
+                    );
+
+                    foreach ($period as $dateInPeriod) {
+                        $dates[$dateInPeriod->format('Y-m-d')] = $this->Title;
                     }
                 }
             }
@@ -91,10 +101,13 @@ class WorkingDaysCalculatorHoliday extends DataObject
             if ($this->Type === 'Date') {
                 $dates[$this->From] = $this->Title;
             } elseif ($this->Type === 'Range' && $this->To) {
+                $to = new DateTime($this->To);
+                $to->setTime(0, 0, 1); // need to set the time to include last date in period
+
                 $period = new DatePeriod(
                     new DateTime($this->From),
                     new DateInterval('P1D'),
-                    new DateTime($this->To)
+                    $to
                 );
                 foreach ($period as $dateInPeriod) {
                     $dates[$dateInPeriod->format('Y-m-d')] = $this->Title;
