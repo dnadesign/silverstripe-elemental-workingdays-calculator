@@ -219,9 +219,9 @@ class ElementWorkingDaysCalculator extends BaseElement
             $interval = (int) $intervalObj->DayCount;
 
             $end = clone $date;
-            $end->modify('+ '.$interval.' days');
+            $end->modify('+ '.$interval.' weekdays');
             $end->setTime(0, 0, 1);
-            // BuIld a period of time for this interval
+            // Build a period of time for this interval
             $period = new DatePeriod(
                 $date,
                 new DateInterval('P1D'),
@@ -230,14 +230,8 @@ class ElementWorkingDaysCalculator extends BaseElement
 
             // Find holidays within the period
             $periodDates = [];
-            $weekendDaysInPeriod = 0;
             foreach ($period as $periodDate) {
                 $periodDates[] = $periodDate->format('Y-m-d');
-
-                // Add weekend days
-                if ($periodDate->format('D') === 'Sat' || $periodDate->format('D') === 'Sun') {
-                    $weekendDaysInPeriod++;
-                }
             }
 
             $holidaysInPeriod = array_filter($holidays, function ($holidayDate) use ($periodDates) {
@@ -246,21 +240,36 @@ class ElementWorkingDaysCalculator extends BaseElement
             }, ARRAY_FILTER_USE_KEY);
 
             // Add the number of holidays to the end date
-            if (count($holidaysInPeriod) > 0 || $weekendDaysInPeriod > 0) {
-                $notWorkableDays = count($holidaysInPeriod) + $weekendDaysInPeriod;
-                $end->modify('+ '.$notWorkableDays.' days');
+            if (count($holidaysInPeriod) > 0) {
+                $notWorkableDays = count($holidaysInPeriod);
+                $end->modify('+ '.$notWorkableDays.' weekdays');
             }
+
+            // Check if there are any holidays in the extended period
+            $extendedPeriod = new DatePeriod(
+                $date,
+                new DateInterval('P1D'),
+                $end
+            );
+
+            $extendedPeriodDates = [];
+            foreach ($extendedPeriod as $extendedPeriodDate) {
+                $extendedPeriodDates[] = $extendedPeriodDate->format('Y-m-d');
+            }
+
+            $holidaysInPeriod = array_filter($holidays, function ($holidayDate) use ($extendedPeriodDates) {
+                $day = date('D', strtotime($holidayDate));
+                return in_array($holidayDate, $extendedPeriodDates) && $day !== 'Sat' && $day !== 'Sun';
+            }, ARRAY_FILTER_USE_KEY);
         
             // Find the next working day
             $nextWorkingDayDate = $this->findNextWorkingDay($end, $holidays);
             $results[] = [
                 'Interval' => $intervalObj,
-                'Date' =>  DBField::create_field(DBDate::class, $nextWorkingDayDate->format('Y-m-d')),
-                'Holidays' => $this->formatHolidaysForTemplate($holidaysInPeriod)
+                'Date' =>  DBField::create_field(DBDate::class, $nextWorkingDayDate['Date']->format('Y-m-d')),
+                'Holidays' => $this->formatHolidaysForTemplate(array_merge($holidaysInPeriod, $nextWorkingDayDate['AddedHolidays']))
             ];
         }
-
-        
 
         return $results;
     }
@@ -273,12 +282,16 @@ class ElementWorkingDaysCalculator extends BaseElement
      * @param array $holidays
      * @return DateTime
      */
-    private function findNextWorkingDay($initialDate, $holidays)
+    private function findNextWorkingDay($initialDate, $holidays, $addedHolidays = [])
     {
         $date = clone $initialDate;
+        $dateString = $date->format('Y-m-d');
 
         // Check new date is not a holiday
-        if (array_key_exists($date->format('Y-m-d'), $holidays)) {
+        if (array_key_exists($dateString, $holidays)) {
+            // Record holiday
+            $addedHolidays[$dateString] = $holidays[$dateString];
+            // Jump to next day
             $date->modify('+ 1 day');
         }
 
@@ -290,12 +303,12 @@ class ElementWorkingDaysCalculator extends BaseElement
         }
 
         // If we haven't modified the date, return it
-        if ($initialDate->format('Y-m-d') === $date->format('Y-m-d')) {
-            return $date;
+        if ($initialDate->format('Y-m-d') ===  $dateString) {
+            return ['Date' => $date, 'AddedHolidays' => $addedHolidays];
         }
 
         // If the date has been modified, check again for holidays and weekends
-        return $this->findNextWorkingDay($date, $holidays);
+        return $this->findNextWorkingDay($date, $holidays, $addedHolidays);
     }
 
     /**
