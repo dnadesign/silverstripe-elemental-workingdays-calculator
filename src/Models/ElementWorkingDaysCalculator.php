@@ -220,7 +220,7 @@ class ElementWorkingDaysCalculator extends BaseElement
 
             $end = clone $date;
             $end->modify('+ '.$interval.' weekdays');
-            $end->setTime(0, 0, 1);
+            $end->setTime(23, 59, 59);
             // Build a period of time for this interval
             $period = new DatePeriod(
                 $date,
@@ -228,41 +228,34 @@ class ElementWorkingDaysCalculator extends BaseElement
                 $end
             );
 
-            // Find holidays within the period
-            $periodDates = [];
-            foreach ($period as $periodDate) {
-                $periodDates[] = $periodDate->format('Y-m-d');
-            }
+            // Extends the period by the number of holidays in it until there are no new holidays
+            // in the extended period
+            $holidaysInPeriod = $this->findHolidaysInPeriod($period, $holidays);
 
-            $holidaysInPeriod = array_filter($holidays, function ($holidayDate) use ($periodDates) {
-                $day = date('D', strtotime($holidayDate));
-                return in_array($holidayDate, $periodDates) && $day !== 'Sat' && $day !== 'Sun';
-            }, ARRAY_FILTER_USE_KEY);
-
-            // Add the number of holidays to the end date
             if (count($holidaysInPeriod) > 0) {
-                $notWorkableDays = count($holidaysInPeriod);
-                $end->modify('+ '.$notWorkableDays.' weekdays');
+                $holidaysCountInExtendedPeriod = 0;
+
+                while (count($holidaysInPeriod) !== $holidaysCountInExtendedPeriod) {
+                    // Record how many holiday in current period
+                    $holidaysCountInExtendedPeriod = count($holidaysInPeriod);
+                    // Extend period
+                    $extendedEnd = clone $end;
+                    $extendedEnd->modify('+ '.count($holidaysInPeriod).' weekdays');
+                    $extendedEnd->setTime(23, 59, 59);
+                    
+                    $period = new DatePeriod(
+                        $date,
+                        new DateInterval('P1D'),
+                        $extendedEnd
+                    );
+                    // Rebuild array f holidays in extend period
+                    $holidaysInPeriod = $this->findHolidaysInPeriod($period, $holidays);
+                }
+                // Once the period has been extended, use the extended date as the end of the period
+                $end = $extendedEnd;
             }
 
-            // Check if there are any holidays in the extended period
-            $extendedPeriod = new DatePeriod(
-                $date,
-                new DateInterval('P1D'),
-                $end
-            );
-
-            $extendedPeriodDates = [];
-            foreach ($extendedPeriod as $extendedPeriodDate) {
-                $extendedPeriodDates[] = $extendedPeriodDate->format('Y-m-d');
-            }
-
-            $holidaysInPeriod = array_filter($holidays, function ($holidayDate) use ($extendedPeriodDates) {
-                $day = date('D', strtotime($holidayDate));
-                return in_array($holidayDate, $extendedPeriodDates) && $day !== 'Sat' && $day !== 'Sun';
-            }, ARRAY_FILTER_USE_KEY);
-        
-            // Find the next working day
+            // Find the next working day (as $end/$extendedEnd can fall on the weekend)
             $nextWorkingDayDate = $this->findNextWorkingDay($end, $holidays);
             $results[] = [
                 'Interval' => $intervalObj,
@@ -275,7 +268,29 @@ class ElementWorkingDaysCalculator extends BaseElement
     }
 
     /**
-     * Givin a date, this will check if the date is not a public holiday or a weekend
+     * Return an array of all the holidays within the period
+     *
+     * @param DatePeriod $period
+     * @param array $holidays
+     * @return array
+     */
+    public function findHolidaysInPeriod($period, $holidays)
+    {
+        $periodDates = [];
+        foreach ($period as $periodDate) {
+            $periodDates[] = $periodDate->format('Y-m-d');
+        }
+
+        $holidaysInPeriod = array_filter($holidays, function ($holidayDate) use ($periodDates) {
+            $day = date('D', strtotime($holidayDate));
+            return in_array($holidayDate, $periodDates) && $day !== 'Sat' && $day !== 'Sun';
+        }, ARRAY_FILTER_USE_KEY);
+
+        return $holidaysInPeriod;
+    }
+
+    /**
+     * Given a date, this will check if the date is not a public holiday or a weekend
      * and return the next working date
      *
      * @param DateTime $initialDate

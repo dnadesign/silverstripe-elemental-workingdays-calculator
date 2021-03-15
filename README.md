@@ -11,4 +11,12 @@ Takes into account public holidays (from an API) and custom holidays you may add
 composer require "dnadesign/silverstripe-elemental-workingdays-calculator"
 ```
 
+## Debug
+In order to check if dates are correct, please refer to [https://newzealand.workingdays.org/]
+
+## TODO
+* Add Unit Tests
+* Prevent element from displaying if not set up properly
+* Refresh Json data when Min/Max year change
+
 
