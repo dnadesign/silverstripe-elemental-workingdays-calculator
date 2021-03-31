@@ -23,6 +23,9 @@ class ElementWorkingDaysCalculatorController extends ElementController
         parent::init();
 
         Requirements::javascript('dnadesign/silverstripe-elemental-workingdays-calculator:client/dist/js/workingdayscalculator.js');
+
+        // Polyfill for date field on IE: https://kreutzercode.github.io/configurable-date-input-polyfill/
+        Requirements::javascript('dnadesign/silverstripe-elemental-workingdays-calculator:client/dist/js/configurable-date-input-polyfill.dist.js');
     }
 
     /**
