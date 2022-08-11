@@ -11,9 +11,11 @@ use DNADesign\ElementWorkingDaysCalculator\Services\PublicHolidayService;
 use Exception;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\RequiredFields;
+use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\Data\Intl\IntlLocales;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\FieldType\DBDate;
@@ -48,7 +50,9 @@ class ElementWorkingDaysCalculator extends BaseElement
         'PublicHolidayJson' => 'Text',
         'Introduction' => 'HTMLText',
         'FormFieldLabel' => 'Varchar(255)',
-        'FormActionLabel' => 'Varchar(100)'
+        'FormActionLabel' => 'Varchar(100)',
+        'ExcludeRegionalHolidays' => 'Boolean',
+        'IncludeHolidaysForRegionCodes' => 'Varchar(255)'
     ];
 
     private static $has_many = [
@@ -107,6 +111,12 @@ class ElementWorkingDaysCalculator extends BaseElement
         // Country
         $country = DropdownField::create('Country', 'Country', $this->getCountryOptions());
         $fields->addFieldToTab('Root.Main', $country, 'Introduction');
+
+        // Global + Region
+        $global = CheckboxField::create('ExcludeRegionalHolidays');
+        $regions = TextField::create('IncludeHolidaysForRegionCodes')->setDescription('comma separated list. eg: NZ-WGN');
+        $fields->addFieldsToTab('Root.Main', [$global, $regions], 'Introduction');
+        $regions->displayIf('ExcludeRegionalHolidays')->isChecked()->end();
 
         // Years
         $start = $fields->dataFieldByName('MinYear');
@@ -342,7 +352,18 @@ class ElementWorkingDaysCalculator extends BaseElement
         foreach ($json as $entry) {
             $entryDate = strtotime($entry->date);
             if ($entryDate >= $queryDate) {
-                $holidays[$entry->date] = $entry->name;
+                $canInclude = true;
+                // Filter regional holiday where applicable
+                if ($this->ExcludeRegionalHolidays) {
+                    $canInclude = $entry->global === true;
+                    if (trim($this->IncludeHolidaysForRegionCodes)) {
+                        $codes = explode(',', trim($this->IncludeHolidaysForRegionCodes));
+                        $canInclude = $entry->global === true || count(array_intersect($codes, $entry->counties)) > 0;
+                    }
+                }
+                if ($canInclude) {
+                    $holidays[$entry->date] = $entry->name;
+                }
             }
         }
 
