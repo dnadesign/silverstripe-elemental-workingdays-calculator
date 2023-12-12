@@ -11,9 +11,9 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-      "dnadesign/silverstripe-elemental": ">=3.0",
-      "silverstripe/vendor-plugin": "^1.0",
-      "unclecheese/display-logic": "^2",
+      "dnadesign/silverstripe-elemental": ">=3.0 || >= 4.0",
+      "silverstripe/vendor-plugin": "^1.0 || ^2.0",
+      "unclecheese/display-logic": "^2 || ^3",
       "guzzlehttp/guzzle": "^6.3.3 || ^7"
   },
   "require-dev": {
