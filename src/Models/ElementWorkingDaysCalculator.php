@@ -14,6 +14,7 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\Data\Intl\IntlLocales;
@@ -132,7 +133,8 @@ class ElementWorkingDaysCalculator extends BaseElement
         // Json
         $json = $fields->dataFieldByName('PublicHolidayJson');
         if ($json) {
-            $fields->addFieldToTab('Root.Holidays', $json);
+            $jsonInfo = LiteralField::create('jsonInfo', '<div class="alert alert-info">The Json will automatically be updated if you delete it, or of the dates or country change</div>');
+            $fields->addFieldsToTab('Root.Holidays', [$json,  $jsonInfo]);
         }
 
         // Extra Holidays
@@ -187,6 +189,18 @@ class ElementWorkingDaysCalculator extends BaseElement
         }
 
         return '';
+    }
+
+    /**
+     * Reset json if variables have changed
+     */
+    public function onBeforeWrite()
+    {
+        parent::onBeforeWrite();
+
+        if ($this->isChanged('MinYear') || $this->isChanged('MaxYear') || $this->isChanged('Country')) {
+            $this->PublicHolidayJson = null;
+        }
     }
 
     /**
