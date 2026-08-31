@@ -15,14 +15,14 @@ use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Forms\TextField;
+use SilverStripe\Forms\Validation\CompositeValidator;
+use SilverStripe\Forms\Validation\RequiredFieldsValidator;
 use SilverStripe\i18n\Data\Intl\IntlLocales;
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\Model\List\ArrayList;
 use SilverStripe\ORM\FieldType\DBDate;
 use SilverStripe\ORM\FieldType\DBField;
 use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
-use Symfony\Component\Translation\Interval;
 
 class ElementWorkingDaysCalculator extends BaseElement
 {
@@ -32,7 +32,7 @@ class ElementWorkingDaysCalculator extends BaseElement
 
     private static $title = '  Working Days Calculator';
 
-    private static $description = 'A calculator to work out the next working day';
+    private static $class_description = 'A calculator to work out the next working day';
 
     private static $singular_name = 'Working Days Calculator';
 
@@ -80,18 +80,17 @@ class ElementWorkingDaysCalculator extends BaseElement
         'Country' => 'nz',
     ];
 
-    /**
-     * Require fields
-     *
-     * @return void
-     */
-    public function getCMSValidator()
+    public function getCMSCompositeValidator(): CompositeValidator
     {
-        return new RequiredFields([
+        $validator = parent::getCMSCompositeValidator();
+
+        $validator->addValidator(RequiredFieldsValidator::create([
             'Country',
             'MinYear',
             'MaxYear'
-        ]);
+        ]));
+
+        return $validator;
     }
 
     public function getType()
@@ -141,7 +140,7 @@ class ElementWorkingDaysCalculator extends BaseElement
         $holidays = $fields->dataFieldByName('ExtraHolidays');
         if ($holidays) {
             $fields->removeByName('ExtraHolidays');
-            $fields->addFieldsToTab('Root.Holidays', $holidays);
+            $fields->addFieldToTab('Root.Holidays', $holidays);
         }
 
         // Intervals
@@ -153,7 +152,7 @@ class ElementWorkingDaysCalculator extends BaseElement
 
             $intervals->setConfig($config);
 
-            $fields->addFieldsToTab('Root.Main', $intervals);
+            $fields->addFieldToTab('Root.Main', $intervals);
         }
  
         return $fields;
@@ -194,7 +193,7 @@ class ElementWorkingDaysCalculator extends BaseElement
     /**
      * Reset json if variables have changed
      */
-    public function onBeforeWrite()
+    protected function onBeforeWrite()
     {
         parent::onBeforeWrite();
 
@@ -209,7 +208,7 @@ class ElementWorkingDaysCalculator extends BaseElement
      *
      * @return void
      */
-    public function onAfterWrite()
+    protected function onAfterWrite()
     {
         parent::onAfterWrite();
 

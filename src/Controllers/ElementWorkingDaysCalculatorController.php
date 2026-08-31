@@ -9,7 +9,7 @@ use SilverStripe\Forms\DateField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\Model\List\ArrayList;
 use SilverStripe\View\Requirements;
 
 class ElementWorkingDaysCalculatorController extends ElementController
@@ -18,7 +18,7 @@ class ElementWorkingDaysCalculatorController extends ElementController
         'calculate'
     ];
 
-    public function init()
+    protected function init()
     {
         parent::init();
 
